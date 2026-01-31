@@ -20,7 +20,8 @@ to predict retail sales.
 ---
 
 ## Dataset
-- **Source:** Kaggle – Warehouse and Retail Sales  
+- **Source:** Kaggle – Warehouse and Retail Sales
+- **Link:** [Warehouse and Retail Sales Dataset en Kaggle](https://www.kaggle.com/datasets/divyeshardeshana/warehouse-and-retail-sales)
 - **Format:** CSV  
 - **Domain:** Retail / Sales  
 - **Raw Data Handling:**  
