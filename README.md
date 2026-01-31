@@ -50,13 +50,9 @@ sales prediction.
 
 Models include:
 - Linear Regression (baseline)
-- Ridge / Lasso / ElasticNet
 - Random Forest Regressor
 - Gradient Boosting Regressor
 - XGBoost
-- LightGBM
-- CatBoost
-- SARIMAX / Prophet (benchmark time-series models)
 
 Model selection is based on cross-validation and performance metrics such as RMSE, MAE, and MAPE.
 - Model versioning and evaluation
