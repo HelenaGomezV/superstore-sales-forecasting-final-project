@@ -1,5 +1,0 @@
-2026-01-29 23:01:11,933 | INFO | Starting ingestion process
-2026-01-29 23:01:12,080 | INFO | CSV loaded successfully | rows=307645 | cols=9
-2026-01-29 23:01:12,081 | INFO | Schema and basic validation passed
-2026-01-29 23:01:12,557 | INFO | Processed data written to data/processed/warehouse_retail_ingested_20260129_230112.csv
-2026-01-29 23:01:12,557 | INFO | Ingestion process completed successfully
