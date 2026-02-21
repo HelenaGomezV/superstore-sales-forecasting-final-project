@@ -46,7 +46,7 @@ The target distribution is heavily right-skewed (skewness = 12.97), with a media
 
 Features removed for cause:
 - `profit_margin`: data leakage (computed from the target variable).
-- `region_te`, `segment_te`, `customer_te`, `shipmode_te`: correlations with Sales below 0.01.
+- `region`, `segment`, `customer`, `shipmode`: correlations with Sales below 0.01.
 
 ### 3. Train/Test Split
 
