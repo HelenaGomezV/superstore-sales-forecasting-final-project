@@ -1,0 +1,105 @@
+SUPERSTORE SALES FORECASTING - KNOWLEDGE BASE
+================================================
+
+PROJECT OVERVIEW
+The Superstore dataset contains 9,994 order lines with 21 features spanning 2014-2017 from a US retail company. The objective is to predict the revenue (Sales) generated per order line. The best model achieved R-squared = 0.925, MAE = $18.41, and SMAPE = 5.6%.
+
+DATASET CHARACTERISTICS
+- 9,994 rows, 21 columns, zero missing values.
+- Target variable: Sales (revenue per order line in USD).
+- Sales distribution: mean $230, median $54, max $22,638. Extremely right-skewed (skewness = 12.97, kurtosis = 305.31).
+- Only 1.4% of orders exceed $2,000 and 0.2% exceed $5,000.
+- Categories: Technology, Furniture, Office Supplies.
+- Segments: Consumer (largest), Corporate, Home Office.
+- Regions: West and East lead in order count.
+- Ship Modes: Standard Class is predominant.
+
+KEY EDA FINDINGS
+- Profit has the strongest linear correlation with Sales (r = 0.479), followed by Quantity (r = 0.201).
+- Discount is weakly negatively correlated with Sales (r = -0.028).
+- Shipping Days, Month, and Year show negligible linear correlation with Sales.
+- Sub-Category shows much stronger price differentiation than Category. Copiers and Machines have median sales several times higher than Labels or Fasteners.
+- Discounts above 30% cause mean profit to turn negative, destroying profitability.
+- Q4 (October-December) consistently shows the highest revenue, with Technology spiking more sharply toward year-end.
+- Order volume increases year over year, reflecting business growth.
+- 1,167 observations (11.7%) are statistical outliers by IQR method but represent legitimate high-value orders.
+
+FEATURE ENGINEERING (27 features in Phase 1, 31 in Phase 2)
+Temporal features: shipping_days, month, quarter, year_norm, month_sin, month_cos, is_q4, is_q1, order_dow.
+Business logic features: quantity, discount, disc_x_qty, discount_flag, heavy_discount (>=30%), log_quantity.
+Aggregation features: order_size, customer_freq, day_of_month, is_month_end, cat_x_discount, qty_x_subcat.
+Encoding features: category_enc, sub-category_enc, product_te, subcat_te, category_te, state_te.
+
+Features removed:
+- profit_margin: data leakage (uses Sales in its calculation).
+- region_te, segment_te, customer_te, shipmode_te: correlations with Sales below 0.01.
+
+Target encoding was computed exclusively from training data (2014-2016) to prevent temporal leakage.
+Target encoding correlations: product_te r=0.868, subcat_te r=0.422, category_te r=0.217, state_te r=0.055.
+
+TRAIN/TEST SPLIT
+Temporal split: 2014-2016 for training (6,682 rows), 2017 for testing (3,312 rows).
+Random splits would allow learning from future orders, inflating performance.
+Train median $54.91, test median $53.81 (well aligned).
+
+PHASE 1 MODEL RESULTS (without Unit Price Proxy)
+RF Base:              R2=0.6989, MAE=$96.34, RMSE=$321.11, SMAPE=56.4%
+RF Tuned:             R2=0.7233, MAE=$87.45, RMSE=$307.83, SMAPE=45.4%
+RF Tuned + log(y):    R2=0.5087, MAE=$91.47, RMSE=$410.15, SMAPE=36.1%
+XGB Base:             R2=0.7169, MAE=$81.35, RMSE=$311.36, SMAPE=45.0%
+XGB Tuned:            R2=0.5875, MAE=$88.46, RMSE=$375.84, SMAPE=45.6%
+XGB Early Stop:       R2=0.5944, MAE=$88.14, RMSE=$372.67, SMAPE=44.9%
+XGB Huber:            R2=0.5416, MAE=$92.80, RMSE=$396.21, SMAPE=40.2%
+XGB Tuned + log(y):   R2=0.6708, MAE=$80.99, RMSE=$335.76, SMAPE=35.1%
+
+Best Phase 1 by MAE: XGB Tuned + log(y) at $80.99
+Best Phase 1 by R2: RF Tuned at 0.7233
+Best Phase 1 by SMAPE: XGB Tuned + log(y) at 35.1%
+
+KEY PHASE 1 OBSERVATIONS
+- Log transformation helps XGBoost but hurts Random Forest.
+- XGBoost tuned performed worse than XGBoost base due to cross-validation optimizing for TimeSeriesSplit folds that didn't align with 2017 test data.
+- Huber loss achieved lowest SMAPE but highest MAE (trade-off between proportional and absolute accuracy).
+- Early stopping halted at iteration 588/3000, confirming overfitting risk.
+
+ERROR ANALYSIS BY PRICE SEGMENT (XGB Tuned, Phase 1)
+Low ($0-50):      1,617 orders, MAE=$12.20, R2=-2.5878
+Medium ($50-200):   857 orders, MAE=$42.75, R2=-1.3652
+High ($200-1K):     691 orders, MAE=$144.97, R2=0.0518
+Premium ($1K+):     147 orders, MAE=$928.12, R2=0.0538
+
+The model performs worst on Premium orders because it lacks a direct price signal.
+
+FEATURE IMPORTANCE (Phase 1, XGBoost Tuned)
+Top 10: product_te (0.2554), customer_freq (0.0637), log_quantity (0.0562), shipping_days (0.0532), quantity (0.0510), discount_flag (0.0483), order_size (0.0478), state_te (0.0393), subcat_te (0.0384), category_te (0.0369).
+
+UNIT PRICE PROXY EXPERIMENT (Phase 2)
+Hypothesis: The model's primary weakness is the absence of an explicit product price signal.
+Method: Compute median unit price per product from training data as Sales / (Quantity x (1 - Discount)).
+Fallback: sub-category median for unseen products.
+New features: unit_price_proxy, estimated_sales, log_est_sales, price_confidence.
+Correlations: estimated_sales r=0.986, unit_price_proxy r=0.845, product_te r=0.868.
+
+PHASE 2 MODEL RESULTS (with Unit Price Proxy)
+RF + UnitPrice:             R2=0.9249, MAE=$18.41, RMSE=$160.41, SMAPE=5.6%
+RF + UnitPrice + log(y):    R2=0.9101, MAE=$20.70, RMSE=$175.48, SMAPE=5.3%
+XGB + UnitPrice:            R2=0.8483, MAE=$27.25, RMSE=$227.88, SMAPE=8.0%
+XGB Huber + UnitPrice:      R2=0.8487, MAE=$26.46, RMSE=$227.59, SMAPE=7.5%
+XGB + UnitPrice + log(y):   R2=0.8439, MAE=$28.31, RMSE=$231.22, SMAPE=6.5%
+
+BEST OVERALL MODEL: RF + UnitPrice with R2=0.9249, MAE=$18.41, SMAPE=5.6%.
+
+IMPROVEMENT BY PRICE SEGMENT (RF Tuned vs RF + UnitPrice)
+Low ($0-50):      MAE $16.18 -> $1.92 (-88%)
+Medium ($50-200): MAE $49.30 -> $10.76 (-78%)
+High ($200-1K):   MAE $141.17 -> $23.14 (-84%)
+Premium ($1K+):   MAE $841.30 -> $222.18 (-74%)
+Overall:          MAE $87.45 -> $18.41 (-79%)
+R2: 0.7233 -> 0.9249
+
+CONCLUSIONS
+1. Feature engineering matters more than algorithm selection. The unit price proxy improved R2 from 0.723 to 0.925.
+2. Log-target transformation helps XGBoost but hurts Random Forest.
+3. Aggressive discounts (>=30%) erode profitability.
+4. Product identity is the strongest predictor.
+5. The remaining error (MAE=$18.41) reflects within-product price variation from dynamic pricing, bundling, and promotions.
